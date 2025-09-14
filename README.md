@@ -1,4 +1,6 @@
 # 🍕 Kopernik Pizza
+<img width="686" height="435" alt="image" src="https://github.com/user-attachments/assets/cb7fea2a-8353-4fa5-bdce-4a424a8c2249" />
+
 
 A database-driven pizza ordering system built with **Flask + SQLAlchemy ORM**.  
 This project is part of the Maastricht University **KEN2110 – Databases** course.  
