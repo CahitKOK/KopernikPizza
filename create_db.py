@@ -1,7 +1,8 @@
 from app import app
 from extensions import db
-import models  # önemli: modelleri import etmeliyiz ki tabloları bilsin
+from models import *
 
 with app.app_context():
+    db.drop_all()  # Start fresh
     db.create_all()
-    print("✅ Tables created:", db.metadata.tables.keys())
+    print("Database tables created successfully!")

@@ -2,6 +2,10 @@ from extensions import db
 
 # Customer file
 class Customer(db.Model):
+    """
+    Customer model for pizza ordering system.
+    Tracks customer info and relationships to orders.
+    """
     __tablename__ = 'customers'
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
@@ -14,16 +18,59 @@ class Customer(db.Model):
 
     def __repr__(self):
         return f"<Customer {self.name}>"
-# Pizza table
+# Ingredient table
+class Ingredient(db.Model):
+    """
+    Ingredient model for pizza toppings.
+    Tracks cost per unit and dietary restrictions (vegetarian/vegan).
+    """
+    __tablename__ = 'ingredients'
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    cost_per_unit = db.Column(db.Float, nullable=False)
+    is_vegetarian = db.Column(db.Boolean, default=True)
+    is_vegan = db.Column(db.Boolean, default=False)
+
+    def __repr__(self):
+        return f"<Ingredient {self.name}>"
+
+class PizzaIngredient(db.Model):
+    __tablename__ = 'pizza_ingredients' 
+    pizza_id = db.Column(db.Integer, db.ForeignKey('pizzas.id'), primary_key=True)
+    ingredient_id = db.Column(db.Integer, db.ForeignKey('ingredients.id'), primary_key=True)
+    quantity = db.Column(db.Float, nullable=False)
+    
+    pizza = db.relationship('Pizza', backref='pizza_ingredients')
+    ingredient = db.relationship('Ingredient', backref='pizza_ingredients')
+
 class Pizza(db.Model):
+    """
+    Pizza model with dynamic pricing based on ingredients.
+    Price = (ingredient_costs + 40% margin + 9% VAT)
+    """
     __tablename__ = 'pizzas'
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
     description = db.Column(db.String(255), nullable=True)
-    price = db.Column(db.Float, nullable=False)
-
-    # relationships one pizza can be in many order items
+    # Remove price field - calculate dynamically
+    
     order_items = db.relationship('OrderItem', back_populates='pizza', lazy=True)
+    
+    def calculate_price(self):
+        """Calculate price: ingredients cost + 40% margin + 9% VAT"""
+        total_cost = 0
+        for pi in self.pizza_ingredients:
+            total_cost += pi.ingredient.cost_per_unit * pi.quantity
+        
+        with_margin = total_cost * 1.40  # 40% margin
+        with_vat = with_margin * 1.09    # 9% VAT
+        return round(with_vat, 2)
+    
+    def is_vegetarian(self):
+        return all(pi.ingredient.is_vegetarian for pi in self.pizza_ingredients)
+    
+    def is_vegan(self):
+        return all(pi.ingredient.is_vegan for pi in self.pizza_ingredients)
 
     def __repr__(self):
         return f"<Pizza {self.name}>"
@@ -57,6 +104,28 @@ class OrderItem(db.Model):
 
     def __repr__(self):
         return f"<OrderItem {self.id} - Order {self.order_id} - Pizza {self.pizza_id}>"
+
+class DeliveryPerson(db.Model):
+    __tablename__ = 'delivery_persons'
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    postal_codes = db.Column(db.String(200), nullable=False)  # Comma-separated
+    is_available = db.Column(db.Boolean, default=True)
+    last_delivery_time = db.Column(db.DateTime, nullable=True)
+
+class Drink(db.Model):
+    __tablename__ = 'drinks'
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    price = db.Column(db.Float, nullable=False)
+    size = db.Column(db.String(50), nullable=True)
+
+class Dessert(db.Model):
+    __tablename__ = 'desserts'
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    price = db.Column(db.Float, nullable=False)
+    description = db.Column(db.String(255), nullable=True)
 # Note: Ensure to create the tables in the database by running create_db.py after defining models.
 # Also, you can seed initial data using seed.py.
 # Relationships summary:
