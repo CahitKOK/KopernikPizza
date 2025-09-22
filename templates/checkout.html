@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Checkout - Mamma Mia's Pizza</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/menu.css') }}">
+  </head>
+  <body>
+    <header>
+      <h1>Checkout</h1>
+    </header>
+    <a href="/menu" class="back">← Back to Menu</a>
+    <main class="container">
+      <section id="cart">
+        <h2>Your cart</h2>
+        <div id="cart-items"></div>
+        <div id="cart-total"></div>
+      </section>
+
+      <!-- debug panel removed -->
+
+      <section id="customer">
+        <h2>Customer</h2>
+        <form id="order-form">
+          <label>Name <input name="name" required /></label>
+          <label>Email <input name="email" type="email" /></label>
+          <label>Phone <input name="phone" /></label>
+          <label>Address <input name="address" required /></label>
+          <label>Birthday <input name="birthday" type="date" /></label>
+          <label>Discount code <input name="discount_code" /></label>
+          <button type="submit">Place Order</button>
+        </form>
+        <div id="order-result"></div>
+      </section>
+    </main>
+    <script>
+      // small mapping for JS to display pizza names/prices
+      window.PIZZAS = {
+        {% for p in pizzas %}
+          {{ p.id }}: {name: {{ p.name|tojson }}, price: {{ '%.2f'|format(p.calculate_price()) }} }{% if not loop.last %},{% endif %}
+        {% endfor %}
+      }
+    </script>
+    <script src="{{ url_for('static', filename='js/order.js') }}"></script>
+    <script>
+      // Ensure checkout shows cart after order.js loads
+      try{
+        if(typeof renderCart === 'function'){
+          renderCart()
+        }
+      }catch(e){ console.error('force renderCart failed', e) }
+    </script>
+  </body>
+</html>

@@ -88,30 +88,51 @@ with app.app_context():
     
     # Add customers
     customers = [
-        Customer(name="Mario Rossi", email="mario@email.com", phone="1234567890", address="Via Roma 1, 00100 Rome"),
-        Customer(name="Luigi Verde", email="luigi@email.com", phone="0987654321", address="Via Milano 2, 20100 Milan"),
-        Customer(name="Anna Bianchi", email="anna@email.com", phone="5555555555", address="Via Napoli 3, 80100 Naples"),
-        Customer(name="Sofia Russo", email="sofia@email.com", phone="1111111111", address="Via Torino 4, 10100 Turin"),
-        Customer(name="Marco Ferrari", email="marco@email.com", phone="2222222222", address="Via Firenze 5, 50100 Florence"),
-        Customer(name="Giulia Romano", email="giulia@email.com", phone="3333333333", address="Via Bologna 6, 40100 Bologna"),
-        Customer(name="Alessandro Costa", email="ale@email.com", phone="4444444444", address="Via Genova 7, 16100 Genoa"),
-        Customer(name="Francesca Ricci", email="fra@email.com", phone="6666666666", address="Via Palermo 8, 90100 Palermo"),
-        Customer(name="Davide Bruno", email="davide@email.com", phone="7777777777", address="Via Venezia 9, 30100 Venice"),
-        Customer(name="Chiara Greco", email="chiara@email.com", phone="8888888888", address="Via Bari 10, 70100 Bari")
+        Customer(name="Mario Rossi", email="mario@email.com", phone="1234567890", address="Via Roma 1, 00100 Rome", birthday=datetime(1990,5,12).date()),
+        Customer(name="Luigi Verde", email="luigi@email.com", phone="0987654321", address="Via Milano 2, 20100 Milan", birthday=datetime(1985,8,20).date()),
+        Customer(name="Anna Bianchi", email="anna@email.com", phone="5555555555", address="Via Napoli 3, 80100 Naples", birthday=datetime(1992,3,3).date()),
+        Customer(name="Sofia Russo", email="sofia@email.com", phone="1111111111", address="Via Torino 4, 10100 Turin", birthday=datetime(1995,9,22).date()),
+        Customer(name="Marco Ferrari", email="marco@email.com", phone="2222222222", address="Via Firenze 5, 50100 Florence", birthday=datetime(1988,11,30).date()),
+        Customer(name="Giulia Romano", email="giulia@email.com", phone="3333333333", address="Via Bologna 6, 40100 Bologna", birthday=datetime(1994,2,14).date()),
+        Customer(name="Alessandro Costa", email="ale@email.com", phone="4444444444", address="Via Genova 7, 16100 Genoa", birthday=datetime(1980,7,7).date()),
+        Customer(name="Francesca Ricci", email="fra@email.com", phone="6666666666", address="Via Palermo 8, 90100 Palermo", birthday=datetime(1991,12,1).date()),
+        Customer(name="Davide Bruno", email="davide@email.com", phone="7777777777", address="Via Venezia 9, 30100 Venice", birthday=datetime(1987,4,18).date()),
+        Customer(name="Chiara Greco", email="chiara@email.com", phone="8888888888", address="Via Bari 10, 70100 Bari", birthday=datetime(1993,6,5).date())
     ]
     
     for customer in customers:
         db.session.add(customer)
     
-    # Add 3 delivery persons with postal codes
+    # Add 3 delivery persons and their delivery zones (postcode prefixes)
     delivery_persons = [
         DeliveryPerson(name="Giuseppe Bianchi", postal_codes="00100,00200,00300", is_available=True),
         DeliveryPerson(name="Maria Rossi", postal_codes="20100,20200,20300", is_available=True), 
         DeliveryPerson(name="Antonio Verde", postal_codes="80100,90100,70100", is_available=True)
     ]
-    
+
     for person in delivery_persons:
         db.session.add(person)
+
+    db.session.commit()  # commit so delivery_persons get ids for zones
+
+    # Create DeliveryZone entries for each delivery person
+    zones = [
+        # Giuseppe covers 00100,00200,00300 -> use prefixes like '001', '002', '003'
+        DeliveryZone(delivery_person_id=delivery_persons[0].id, postcode_prefix='001'),
+        DeliveryZone(delivery_person_id=delivery_persons[0].id, postcode_prefix='002'),
+        DeliveryZone(delivery_person_id=delivery_persons[0].id, postcode_prefix='003'),
+        # Maria covers 20100,20200,20300
+        DeliveryZone(delivery_person_id=delivery_persons[1].id, postcode_prefix='201'),
+        DeliveryZone(delivery_person_id=delivery_persons[1].id, postcode_prefix='202'),
+        DeliveryZone(delivery_person_id=delivery_persons[1].id, postcode_prefix='203'),
+        # Antonio covers 80100,90100,70100
+        DeliveryZone(delivery_person_id=delivery_persons[2].id, postcode_prefix='801'),
+        DeliveryZone(delivery_person_id=delivery_persons[2].id, postcode_prefix='901'),
+        DeliveryZone(delivery_person_id=delivery_persons[2].id, postcode_prefix='701')
+    ]
+
+    for z in zones:
+        db.session.add(z)
     
     # Add drinks
     drinks = [

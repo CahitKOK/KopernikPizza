@@ -12,6 +12,7 @@ class Customer(db.Model):
     email = db.Column(db.String(100), unique=True, nullable=False)
     phone = db.Column(db.String(15), unique=True, nullable=False)
     address = db.Column(db.String(200), nullable=False)
+    birthday = db.Column(db.Date, nullable=True)
 
     # relationships one customer can have many orders 
     orders = db.relationship('Order', back_populates='customer', lazy=True)
@@ -81,37 +82,60 @@ class Order(db.Model):
     customer_id = db.Column(db.Integer, db.ForeignKey('customers.id'), nullable=False)
     order_date = db.Column(db.DateTime, nullable=False)
     status = db.Column(db.String(50), nullable=False)
+    total = db.Column(db.Float, nullable=True)
+    delivery_person_id = db.Column(db.Integer, db.ForeignKey('delivery_persons.id'), nullable=True)
 
     # relationships one order belongs to one customer
     customer = db.relationship('Customer', back_populates='orders', lazy=True)
     # one order can have many order items
-    order_items = db.relationship('OrderItem', back_populates='order', lazy=True)
+    # relationship 'items' will be attached after OrderItem is defined
 
     def __repr__(self):
         return f"<Order {self.id} - Customer {self.customer_id}>"
 # OrderItem table
 class OrderItem(db.Model):
-    __tablename__ = 'order_items'
+    __tablename__ = "order_items"
+
     id = db.Column(db.Integer, primary_key=True)
-    order_id = db.Column(db.Integer, db.ForeignKey('orders.id'), nullable=False)
-    pizza_id = db.Column(db.Integer, db.ForeignKey('pizzas.id'), nullable=False)
+    order_id = db.Column(db.Integer, db.ForeignKey("orders.id"))
+    pizza_id = db.Column(db.Integer, db.ForeignKey("pizzas.id"))
     quantity = db.Column(db.Integer, nullable=False)
 
-    # relationships one order item belongs to one order
-    order = db.relationship('Order', back_populates='order_items', lazy=True)
-    # one order item refers to one pizza
-    pizza = db.relationship('Pizza', back_populates='order_items', lazy=True)
+    order = db.relationship("Order", back_populates="items")
+    pizza = db.relationship("Pizza", back_populates="order_items")
 
     def __repr__(self):
         return f"<OrderItem {self.id} - Order {self.order_id} - Pizza {self.pizza_id}>"
 
 class DeliveryPerson(db.Model):
-    __tablename__ = 'delivery_persons'
+    __tablename__ = "delivery_persons"
+
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
-    postal_codes = db.Column(db.String(200), nullable=False)  # Comma-separated
+    postal_codes = db.Column(db.String(200), nullable=True)  # Comma-separated (kept for compatibility)
     is_available = db.Column(db.Boolean, default=True)
     last_delivery_time = db.Column(db.DateTime, nullable=True)
+
+    # hangi post kodlarını teslim edebilir
+    zones = db.relationship("DeliveryZone", back_populates="delivery_person")
+
+
+class DeliveryZone(db.Model):
+    __tablename__ = "delivery_zones"
+
+    id = db.Column(db.Integer, primary_key=True)
+    delivery_person_id = db.Column(db.Integer, db.ForeignKey("delivery_persons.id"))
+    postcode_prefix = db.Column(db.String(10), nullable=False)
+
+    delivery_person = db.relationship("DeliveryPerson", back_populates="zones")
+
+
+class DiscountCode(db.Model):
+    __tablename__ = "discount_codes"
+
+    code = db.Column(db.String(50), primary_key=True)
+    percent_off = db.Column(db.Float, nullable=False)
+    is_used = db.Column(db.Boolean, default=False)
 
 class Drink(db.Model):
     __tablename__ = 'drinks'
@@ -126,6 +150,8 @@ class Dessert(db.Model):
     name = db.Column(db.String(100), nullable=False)
     price = db.Column(db.Float, nullable=False)
     description = db.Column(db.String(255), nullable=True)
+Order.items = db.relationship("OrderItem", back_populates="order")
+
 # Note: Ensure to create the tables in the database by running create_db.py after defining models.
 # Also, you can seed initial data using seed.py.
 # Relationships summary:

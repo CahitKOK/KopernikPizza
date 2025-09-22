@@ -1,0 +1,78 @@
+:root{
+  --bg: #fffaf0;
+  --card: #fff;
+  --accent: #ff6b6b;
+  --muted: #6b6b6b;
+}
+body{font-family:Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial; background:var(--bg); color:#222; margin:0;}
+header{padding:2rem 1.5rem; display:flex; align-items:center; justify-content:space-between}
+h1{margin:0; font-size:1.6rem}
+.back{display:inline-block; margin-left:1.5rem; color:var(--accent); text-decoration:none}
+.container{padding:0 1.5rem 3rem}
+.grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:1rem}
+.card{background:var(--card); border-radius:12px; padding:1rem; box-shadow:0 6px 18px rgba(0,0,0,0.06);}
+.card-head{display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem}
+.title{font-weight:700}
+.price{font-weight:800; color:var(--accent)}
+.badge{display:inline-block; padding:4px 8px; border-radius:999px; font-size:0.75rem; margin-right:6px}
+.vegan{background:#e6f9ef; color:#0b7b3a}
+.veg{background:#f0f9ff; color:#0b60a8}
+.desc{color:var(--muted); margin:0.25rem 0 0.5rem}
+.ingredients{font-size:0.9rem; color:#555; margin:0}
+.card-footer{margin-top:0.75rem; font-size:0.9rem; color:#777}
+
+@media (max-width:500px){
+  header{padding:1rem}
+  .container{padding:0 1rem}
+}
+
+/* Cart and checkout enhancements */
+.checkout-btn{background:var(--accent); color:white; padding:8px 12px; border-radius:8px; text-decoration:none; margin-left:12px}
+.mini-cart{background:transparent; border:2px solid var(--accent); color:var(--accent); padding:6px 10px; border-radius:8px; cursor:pointer; margin-left:8px}
+.mini-cart #mini-count{font-weight:800; margin-left:6px}
+
+.cart-line{display:flex; align-items:center; gap:10px; padding:8px 6px; border-bottom:1px dashed #eee}
+.cart-line strong{flex:1}
+.cart-line .qty{display:inline-block; min-width:28px; text-align:center}
+.qty-incr, .qty-decr{background:#fff; border:1px solid #ddd; padding:4px 8px; border-radius:6px; cursor:pointer}
+.qty-incr:hover, .qty-decr:hover{background:#f7f7f7}
+.remove-item{background:transparent; border:0; color:#c0392b; cursor:pointer; padding:6px 8px}
+.remove-item:hover{color:#842018}
+
+/* Make checkout form look nicer */
+#customer form{display:flex; flex-direction:column; gap:8px; max-width:480px}
+#customer label{display:flex; flex-direction:column; font-size:0.95rem}
+#customer input{padding:8px 10px; border:1px solid #e5e5e5; border-radius:6px}
+#customer button[type="submit"]{background:var(--accent); color:white; border:0; padding:10px 14px; border-radius:8px; cursor:pointer; margin-top:6px}
+#order-result{margin-top:10px; font-weight:600}
+
+@media (max-width:600px){
+  .cart-line{flex-direction:column; align-items:flex-start}
+  .mini-cart{display:none}
+}
+
+/* Toast notification */
+.toast {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: 24px;
+  background: rgba(0,0,0,0.85);
+  color: white;
+  padding: 10px 14px;
+  border-radius: 8px;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.2);
+  opacity: 0; pointer-events: none;
+  transition: opacity 220ms ease, transform 220ms ease;
+}
+.toast.show{ opacity: 1; pointer-events: auto; transform: translateX(-50%) translateY(-6px) }
+
+/* mini cart dropdown */
+.mini-dropdown{ position: absolute; right: 12px; top: 56px; width: 300px; background: white; border-radius: 10px; box-shadow: 0 8px 28px rgba(0,0,0,0.12); padding: 8px; z-index: 60; display:none }
+.mini-dropdown.visible{ display:block }
+.mini-dropdown .mini-item{ display:flex; justify-content:space-between; padding:6px 4px; border-bottom:1px solid #f2f2f2 }
+.mini-dropdown .mini-item:last-child{ border-bottom:0 }
+
+/* subtle animation when qty changes */
+.cart-line.flash{ animation: flash 360ms ease }
+@keyframes flash{ 0%{ background: #fff8e6 } 100%{ background: transparent } }

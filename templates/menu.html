@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Mamma Mia's Pizza Menu</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/menu.css') }}">
+  </head>
+  <body>
+    <header>
+      <h1>🍕 MAMMA MIA'S PIZZA MENU 🍕</h1>
+    </header>
+  <a href="/" class="back">← Back to Home</a>
+    <a href="/checkout" class="checkout-btn">🛒 View Cart / Checkout</a>
+    <div style="position:relative; display:inline-block">
+      <button id="mini-cart" class="mini-cart">🛒 <span id="mini-count">0</span></button>
+      <div id="mini-dropdown" class="mini-dropdown"></div>
+    </div>
+    <main class="container">
+      <div class="grid">
+      {% for pizza in pizzas %}
+  <article class="card" data-pid="{{ pizza.id }}" data-price="{{ '%.2f'|format(pizza.calculate_price()) }}" data-name="{{ pizza.name|e }}">
+          <div class="card-head">
+            <div class="title">{{ pizza.name }}</div>
+            <div class="price">€{{ '%.2f'|format(pizza.calculate_price()) }}</div>
+          </div>
+          <div class="badges">
+            {% if pizza.is_vegan() %}
+              <span class="badge vegan">🌿 VEGAN</span>
+            {% elif pizza.is_vegetarian() %}
+              <span class="badge veg">🌱 VEGETARIAN</span>
+            {% endif %}
+          </div>
+          <p class="desc">{{ pizza.description }}</p>
+          <p class="ingredients"><strong>Ingredients:</strong>
+            {% for pi in pizza.pizza_ingredients %}
+              {{ pi.ingredient.name }} ({{ pi.quantity }}){% if not loop.last %}, {% endif %}
+            {% endfor %}
+          </p>
+          <div class="card-footer">
+            <button class="add-to-cart" data-pid="{{ pizza.id }}">🍕 Add to cart</button>
+          </div>
+        </article>
+      {% endfor %}
+      </div>
+    </main>
+    <script src="{{ url_for('static', filename='js/order.js') }}"></script>
+  </body>
+</html>
