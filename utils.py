@@ -69,17 +69,32 @@ def apply_discounts(order: Order, discount_code: Optional[DiscountCode] = None) 
     return round(total, 2)
 
 
+from extensions import db
+from models import DeliveryPerson, DeliveryZone, Order
+from typing import Optional
+from datetime import datetime, timedelta
+from sqlalchemy import text
+import re
+
 def assign_delivery_person_sql(order: Order) -> Optional[DeliveryPerson]:
     cust = order.customer
     if not cust or not cust.address:
+        print("❌ No customer or address")
         return None
+
     m = re.search(r"(\d{5})", cust.address)
     if not m:
+        print(f"❌ No postcode match in address: {cust.address}")
         return None
+
     prefix = m.group(1)[:3]
+    print(f"✅ Extracted prefix: {prefix} from address: {cust.address}")
+
+    cutoff_dt = datetime.utcnow() - timedelta(minutes=30)
     sql = text(
         """
-        SELECT dp.id FROM delivery_persons dp
+        SELECT dp.id 
+        FROM delivery_persons dp
         JOIN delivery_zones dz ON dz.delivery_person_id = dp.id
         WHERE dz.postcode_prefix = :prefix
           AND (dp.last_delivery_time IS NULL OR dp.last_delivery_time <= :cutoff)
@@ -87,32 +102,24 @@ def assign_delivery_person_sql(order: Order) -> Optional[DeliveryPerson]:
         LIMIT 1
         """
     )
-    cutoff_dt = datetime.utcnow() - timedelta(minutes=30)
     row = db.session.execute(sql, {"prefix": prefix, "cutoff": cutoff_dt}).fetchone()
+    print("🔎 SQL row:", row)
+
     if not row:
         return None
+
     dp_id = row[0]
     dp = DeliveryPerson.query.get(dp_id)
+    print("✅ Assigned delivery person:", dp)
+
     if not dp:
         return None
+
     order.delivery_person_id = dp.id
     dp.last_delivery_time = datetime.utcnow()
     db.session.add(order)
     db.session.add(dp)
     db.session.commit()
     return dp
-
-
-def assign_delivery_person(order: Order) -> Optional[DeliveryPerson]:
-    cust = order.customer
-    if not cust or not cust.address:
-        return None
-    m = re.search(r"(\d{5})", cust.address)
-    if not m:
-        return None
-    prefix = m.group(1)[:3]
-    zone = DeliveryZone.query.filter_by(postcode_prefix=prefix).first()
-    if not zone:
-        return None
-    return zone.delivery_person
-
+from flask import Flask, request, jsonify
+from extensions import db

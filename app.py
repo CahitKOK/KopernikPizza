@@ -89,7 +89,16 @@ def create_order():
                 if cdata.get('birthday'):
                     from datetime import datetime
                     birthday = datetime.fromisoformat(cdata['birthday']).date()
-                cust = Customer(name=cdata['name'], email=cdata['email'], phone=cdata['phone'], address=cdata['address'], birthday=birthday)
+                cust=Customer.query.filter((Customer.email == cdata['email']) | (Customer.phone == cdata['phone'])).first()
+                if not cust:
+                    cust = Customer(
+                        name=cdata.get('name'),
+                        email=cdata.get('email'),
+                        phone=cdata.get('phone'),
+                        address=cdata.get('address'),
+                        birthday=birthday
+                    )
+                
                 db.session.add(cust)
                 db.session.flush()
             except Exception as e:
@@ -139,7 +148,11 @@ def create_order():
 
         # assign delivery person (this updates last_delivery_time inside function)
         dp = assign_delivery_person_sql(order)
-
+        if dp:
+            delivery_name = dp.name
+        else:   
+            delivery_name = "No delivery person available"
+        print("DEBUG delivery assignment result:", dp, "=>", delivery_name)
         result = {
             "order_id": order.id,
             "total": order.total,

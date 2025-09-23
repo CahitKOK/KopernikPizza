@@ -236,8 +236,18 @@ function initCart(){
       const res = await fetch('/orders', {method:'POST', headers:{'content-type':'application/json'}, body: JSON.stringify(payload)})
       const json = await res.json()
       const out = document.getElementById('order-result')
-      if(res.status === 201){ out.innerText = `Order placed! id=${json.order_id}, total=${json.total}, delivery=${json.delivery_person}`; localStorage.removeItem(CART_KEY); renderCart() }
-      else { out.innerText = 'Error: ' + (json.error || JSON.stringify(json)) }
+      if(res.status === 201){
+        if (json.delivery_person && json.delivery_person.startsWith("No courier")) {
+          out.innerText = `Order placed! id=${json.order_id}, total=${json.total} ⚠️ ${json.delivery_person}`;
+        } else {
+          out.innerText = `Order placed! id=${json.order_id}, total=${json.total}, delivery by ${json.delivery_person}`;
+        }
+      localStorage.removeItem(CART_KEY);
+      renderCart();
+      }
+      else {
+        out.innerText = 'Error: ' + (json.error || JSON.stringify(json));
+      }
     })
   }
 }
