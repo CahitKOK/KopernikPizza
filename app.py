@@ -44,9 +44,18 @@ def menu():
 
 @app.route("/checkout")
 def checkout():
-    """Simple checkout page that uses client-side cart stored in localStorage."""
     pizzas = Pizza.query.all()
-    return render_template('checkout.html', pizzas=pizzas)
+
+    pizzas_data = []
+    for p in pizzas:
+        pizzas_data.append({
+            "id": p.id,
+            "name": p.name,
+            "price": round(p.calculate_price(), 2) if hasattr(p, "calculate_price") else float(p.base_price or 0)
+        })
+
+    return render_template("checkout.html", pizzas=pizzas_data)
+
 
 
 @app.route('/orders', methods=['POST'])

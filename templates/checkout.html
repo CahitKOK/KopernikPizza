@@ -18,8 +18,6 @@
         <div id="cart-total"></div>
       </section>
 
-      <!-- debug panel removed -->
-
       <section id="customer">
         <h2>Customer</h2>
         <form id="order-form">
@@ -34,22 +32,25 @@
         <div id="order-result"></div>
       </section>
     </main>
+
+    <!-- Güvenli JSON aktarımı -->
     <script>
-      // small mapping for JS to display pizza names/prices
-      window.PIZZAS = {
-        {% for p in pizzas %}
-          {{ p.id }}: {name: {{ p.name|tojson }}, price: {{ '%.2f'|format(p.calculate_price()) }} }{% if not loop.last %},{% endif %}
-        {% endfor %}
-      }
+      // Flask ile pizzaları güvenli şekilde JSON olarak aktar
+      window.PIZZAS = {{ pizzas | tojson |safe}};
+      console.log("[checkout.html] window.PIZZAS loaded:", window.PIZZAS);
     </script>
+
     <script src="{{ url_for('static', filename='js/order.js') }}"></script>
     <script>
       // Ensure checkout shows cart after order.js loads
-      try{
-        if(typeof renderCart === 'function'){
-          renderCart()
+      try {
+        if (typeof renderCart === 'function') {
+          renderCart();
         }
-      }catch(e){ console.error('force renderCart failed', e) }
+      } catch (e) {
+        console.error('force renderCart failed', e);
+      }
     </script>
   </body>
+</html>
 </html>

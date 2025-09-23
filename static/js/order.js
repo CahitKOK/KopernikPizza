@@ -1,12 +1,12 @@
 // Client-side cart with quantity controls, mini-cart, and persisted customer fields
 const CART_KEY = 'kopernik_cart'
-const CUST_KEY = 'kopernik_cust'
+const CUSTOMER_STORAGE_KEY = 'kopernik_customer'
 
 // Inject toast element
-(function(){
+;(function(){
   const t = document.createElement('div'); t.id='__kopernik_toast'; t.className='toast'; document.body.appendChild(t)
   window.showToast = function(msg, ms=1600){ const el = document.getElementById('__kopernik_toast'); el.innerText = msg; el.classList.add('show'); setTimeout(()=>el.classList.remove('show'), ms) }
-})()
+})();
 
 // Do not pre-initialize window.PIZZAS here — build it from server data or from .card elements below
 
@@ -14,7 +14,13 @@ const CUST_KEY = 'kopernik_cust'
 try{ console.log('[order.js] loaded') }catch(e){}
 
 function loadCart(){
-  try{ return JSON.parse(localStorage.getItem(CART_KEY) || '[]') }catch(e){ return [] }
+  try{
+    const raw = JSON.parse(localStorage.getItem(CART_KEY) || '[]')
+    if(!Array.isArray(raw)) return []
+    // normalize entries: ensure numeric pizza_id and quantity, filter invalid entries
+    return raw.map(it=>({ pizza_id: Number(it.pizza_id), quantity: Number(it.quantity) }))
+              .filter(it=> Number.isFinite(it.pizza_id) && Number.isFinite(it.quantity) && it.quantity>0)
+  }catch(e){ return [] }
 }
 function saveCart(c){ const s = JSON.stringify(c); localStorage.setItem(CART_KEY, s); }
 
@@ -26,9 +32,10 @@ function updateMiniCount(){
 }
 
 function bindCartButtons(){
-  document.querySelectorAll('.qty-incr').forEach(b=> b.onclick = ()=>{ changeQty(parseInt(b.dataset.pid), 1) })
-  document.querySelectorAll('.qty-decr').forEach(b=> b.onclick = ()=>{ changeQty(parseInt(b.dataset.pid), -1) })
-  document.querySelectorAll('.remove-item').forEach(b=> b.onclick = ()=>{ removeItem(parseInt(b.dataset.pid)) })
+  // Keep explicit bindings for existing elements (useful for older browsers)
+  document.querySelectorAll('.qty-incr').forEach(b=> b.onclick = ()=>{ changeQty(Number(b.dataset.pid), 1) })
+  document.querySelectorAll('.qty-decr').forEach(b=> b.onclick = ()=>{ changeQty(Number(b.dataset.pid), -1) })
+  document.querySelectorAll('.remove-item').forEach(b=> b.onclick = ()=>{ removeItem(Number(b.dataset.pid)) })
 }
 
 function renderCart(){
@@ -119,12 +126,15 @@ function initCart(){
   // build a price/name map from server-rendered data OR from the .card elements on the page
   // If the server already provided window.PIZZAS (on /checkout), keep it. Otherwise, when .card elements exist (on /menu), build the map.
   if(document.querySelectorAll('.card').length > 0){
+    const cards = document.querySelectorAll('.card')
+    try{ console.log('[order.js] found .card elements:', cards.length) }catch(e){}
     window.PIZZAS = window.PIZZAS || {}
-    document.querySelectorAll('.card').forEach(card=>{
+    cards.forEach(card=>{
       const pid = parseInt(card.dataset.pid)
-      const price = parseFloat(card.dataset.price)
+      const price = Number(card.dataset.price)
       const name = card.dataset.name || null
-      if(pid) window.PIZZAS[pid] = { name: name || (`Pizza ${pid}`), price: price || 0 }
+      try{ console.log('[order.js] building PIZZAS entry for pid=', pid, 'name=', name, 'price=', price) }catch(e){}
+      if(Number.isFinite(pid)) window.PIZZAS[pid] = { name: name || (`Pizza ${pid}`), price: Number.isFinite(price) ? price : 0 }
     })
   }
 
@@ -137,13 +147,32 @@ function initCart(){
     if(!btn) return
     e.preventDefault()
     // get pid from button dataset or from enclosing .card
-    const pidAttr = btn.dataset && btn.dataset.pid ? btn.dataset.pid : (btn.closest ? (btn.closest('.card') && btn.closest('.card').dataset && btn.closest('.card').dataset.pid) : null)
-    const pid = parseInt(pidAttr)
+    let pidAttr = null
+    try{
+      if(btn.dataset && btn.dataset.pid) pidAttr = btn.dataset.pid
+      else if(btn.closest){ const c = btn.closest('.card'); if(c && c.dataset) pidAttr = c.dataset.pid }
+    }catch(e){ try{ console.warn('[order.js] pidAttr extraction error', e) }catch(_){} }
+    const pid = parseInt(pidAttr, 10)
+    try{ console.log('[order.js] add-to-cart click detected', { pidAttr, pid, btn }) }catch(e){}
     if(isNaN(pid)){
       try{ console.warn('[order.js] add-to-cart clicked but pid missing or invalid', pidAttr) }catch(e){}
       return
     }
-    addToCart(pid)
+    try{
+      addToCart(pid)
+    }catch(err){
+      console.error('[order.js] addToCart threw', err)
+    }
+  })
+
+  // also delegate quantity and remove button clicks (works after render)
+  document.addEventListener('click', function(e){
+    const incr = e.target && (e.target.closest ? e.target.closest('.qty-incr') : (e.target.classList && e.target.classList.contains('qty-incr') ? e.target : null))
+    if(incr){ e.preventDefault(); const pid = Number(incr.dataset.pid); if(!isNaN(pid)) changeQty(pid, 1); return }
+    const decr = e.target && (e.target.closest ? e.target.closest('.qty-decr') : (e.target.classList && e.target.classList.contains('qty-decr') ? e.target : null))
+    if(decr){ e.preventDefault(); const pid = Number(decr.dataset.pid); if(!isNaN(pid)) changeQty(pid, -1); return }
+    const rem = e.target && (e.target.closest ? e.target.closest('.remove-item') : (e.target.classList && e.target.classList.contains('remove-item') ? e.target : null))
+    if(rem){ e.preventDefault(); const pid = Number(rem.dataset.pid); if(!isNaN(pid)) removeItem(pid); return }
   })
 
   // Note: we don't auto-navigate on mini-cart click here — the dropdown toggle is handled below.
@@ -181,12 +210,12 @@ function initCart(){
   const form = document.getElementById('order-form')
   if(form){
     // prefill
-    try{ const saved = JSON.parse(localStorage.getItem(CUST_KEY) || '{}'); Object.keys(saved).forEach(k=>{ if(form[k]) form[k].value = saved[k] }) }catch(e){}
+    try{ const saved = JSON.parse(localStorage.getItem(CUSTOMER_STORAGE_KEY) || '{}'); Object.keys(saved).forEach(k=>{ if(form[k]) form[k].value = saved[k] }) }catch(e){}
     ['name','email','phone','address','birthday','discount_code'].forEach(k=>{
       if(form[k]) form[k].addEventListener('input', ()=>{
-        const obj = JSON.parse(localStorage.getItem(CUST_KEY) || '{}')
+        const obj = JSON.parse(localStorage.getItem(CUSTOMER_STORAGE_KEY) || '{}')
         obj[k]=form[k].value
-        localStorage.setItem(CUST_KEY, JSON.stringify(obj))
+        localStorage.setItem(CUSTOMER_STORAGE_KEY, JSON.stringify(obj))
       })
     })
     form.addEventListener('submit', async (e)=>{
