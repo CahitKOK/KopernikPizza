@@ -103,3 +103,32 @@ python app.py
 - `DeliveryPerson` - Delivery staff
 
 - `Drink`, `Dessert` - Additional menu items- `Drink`, `Dessert` - Additional menu items
+
+## 📦 Week 4 – Orders, Discounts & Delivery Assignment
+
+### ✅ Implemented Features
+- **Order Placement**
+  - Orders can be placed via `/orders` endpoint.
+  - New customers are added automatically; existing customers can be reused.
+  - Orders include linked `OrderItem` records for pizzas.
+
+- **Customer Tracking**
+  - Customer information (name, email, phone, address, birthday) stored in database.
+  - Pizza count per customer tracked for loyalty discounts.
+
+- **Discounts**
+  - 🎂 **Birthday discount**: Customer receives the cheapest pizza for free on their birthday.
+  - 🏆 **Loyalty discount**: After 10 pizzas, customer gets 10% off all future orders.
+  - 💸 **Discount codes**: One-time codes supported, marked as used after redemption.
+
+- **Delivery Assignment**
+  - Delivery personnel linked to postcode prefixes (`DeliveryZone` table).
+  - SQL-based assignment selects an available courier for the matching zone.
+  - 🚲 **Cooldown rule**: After each delivery, courier is unavailable for 30 minutes.
+  - If no courier is available → system returns: *"No delivery person available"*.
+
+### 🎯 Deliverables
+- Orders are created and persisted in the database.
+- Discounts applied correctly based on rules.
+- Delivery assignment works with prefix matching and cooldown logic.
+- All business rules tested with seeded sample data.
