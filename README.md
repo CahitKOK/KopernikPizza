@@ -2,22 +2,21 @@
 <img width="686" height="435" alt="image" src="https://github.com/user-attachments/assets/cb7fea2a-8353-4fa5-bdce-4a424a8c2249" />
 
 
-A database-driven pizza ordering system built with **Flask + SQLAlchemy ORM**.  
+A comprehensive database-driven pizza ordering system built with **Flask + SQLAlchemy ORM**.  
 This project is part of the Maastricht University **KEN2110 – Databases** course.  
 
 ---
 
-## 🚀 Features (Week 1–2)
-- Flask app with SQLAlchemy ORM
-- Database models: `Customer`, `Pizza`, `Order`
+## 🚀 Core Features
+- Flask web application with SQLAlchemy ORM
+- Complete database models with relationships
 - SQLite database (`kopernikpizza.db`)
-- Initial setup with migrations, static, and templates folders
-
-Planned (next steps):
-- Order items (many-to-many between Orders and Pizzas)
-- Dynamic pizza pricing (ingredients, VAT, margin)
-- Discounts & delivery rules
-- Reports for staff
+- Dynamic pizza pricing with ingredients, VAT, and margin calculations
+- Multi-tier discount system (birthday, loyalty, promotional codes)
+- Delivery management with postcode zones and courier cooldown system
+- Staff reporting dashboard with business analytics
+- Transaction handling with rollback capabilities
+- Database constraints and data integrity enforcement
 
 ---
 
@@ -47,46 +46,27 @@ KopernikPizza/
 # or
 source venv/bin/activate   # Mac/Linux
 
-3. Install dependencies
+3. Install dependencies:
+   ```bash
    pip install -r requirements.txt
-4. Run the app
+   ```
+
+4. Create and initialize database:
+   ```bash
+   python create_db.py
+   python seed.py
+   ```
+
+5. Run the application:
+   ```bash
    python app.py
-Database Setup
-from app import db
-db.create_all()
-This creates kopernikpizza.db with initial tables : customers,pizzas,orders
+   ```
+
+6. Open your browser and visit: http://127.0.0.1:5000/
 
 ---
 
-# Kopernik Pizza - Week 3
-
-Post-EU Pizza Scandal ordering system for Mamma Mia's Pizza.
-
-## Setup Instructions
-
-1. Install dependencies:
-```bash
-pip install -r requiremnts.txt
-```
-
-2. Create database:
-```bash
-python create_db_v2.py
-```
-
-3. Seed with sample data:
-```bash
-python seed_week3.py
-```
-
-4. Run the app:
-```bash
-python app.py
-```
-
-5. Visit: http://127.0.0.1:5000/
-
-## Features (Week 3)
+## 🍕 Application Features
 - ✅ 12 pizzas with dynamic pricing
 - ✅ 15 ingredients with costs
 - ✅ Vegetarian/Vegan labeling
@@ -104,9 +84,9 @@ python app.py
 
 - `Drink`, `Dessert` - Additional menu items- `Drink`, `Dessert` - Additional menu items
 
-## 📦 Week 4 – Orders, Discounts & Delivery Assignment
+## 📦 Order Management & Business Logic
 
-### ✅ Implemented Features
+### Complete Implementation
 - **Order Placement**
   - Orders can be placed via `/orders` endpoint.
   - New customers are added automatically; existing customers can be reused.
@@ -127,8 +107,10 @@ python app.py
   - 🚲 **Cooldown rule**: After each delivery, courier is unavailable for 30 minutes.
   - If no courier is available → system returns: *"No delivery person available"*.
 
-### 🎯 Deliverables
-- Orders are created and persisted in the database.
-- Discounts applied correctly based on rules.
-- Delivery assignment works with prefix matching and cooldown logic.
-- All business rules tested with seeded sample data.
+### 🎯 Technical Implementation
+- Complete order lifecycle management with database persistence
+- Automated discount calculation and application
+- Intelligent delivery assignment with geographic zones
+- Comprehensive business rule enforcement
+- Full transaction support with error handling and rollback capabilities
+- Staff dashboard with real-time analytics and reporting

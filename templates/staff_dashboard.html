@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Staff Dashboard - Mamma Mia's Pizza</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/menu.css') }}">
+    <style>
+        .dashboard { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; padding: 20px; }
+        .report-card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .report-card h2 { margin-top: 0; color: #d32f2f; }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin: 15px 0; }
+        .stat-item { background: #f5f5f5; padding: 10px; text-align: center; border-radius: 4px; }
+        .stat-value { font-size: 1.5em; font-weight: bold; color: #d32f2f; }
+        .stat-label { font-size: 0.9em; color: #666; }
+        .order-item { border-bottom: 1px solid #eee; padding: 10px 0; }
+        .order-item:last-child { border-bottom: none; }
+        .status-pending { color: #ff9800; }
+        .status-confirmed { color: #2196f3; }
+        .status-preparing { color: #ff5722; }
+        .nav-links { padding: 20px; }
+        .nav-links a { margin-right: 20px; padding: 10px 20px; background: #d32f2f; color: white; text-decoration: none; border-radius: 4px; }
+        .nav-links a:hover { background: #b71c1c; }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>📊 Staff Dashboard</h1>
+    </header>
+    
+    <div class="nav-links">
+        <a href="/">← Home</a>
+        <a href="/menu">Menu</a>
+        <a href="/staff/test-transactions">🔄 Test Transactions</a>
+        <a href="/staff/setup-constraints">🛡️ Setup Constraints</a>
+        <a href="/staff/test-constraints">🧪 Test Constraints</a>
+        <a href="/staff/reports/undelivered">Undelivered API</a>
+        <a href="/staff/reports/top-pizzas">Top Pizzas API</a>
+        <a href="/staff/reports/earnings">Earnings API</a>
+    </div>
+
+    <main class="dashboard">
+        <!-- Monthly Summary -->
+        <div class="report-card">
+            <h2>📈 Monthly Summary</h2>
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <div class="stat-value">{{ monthly_summary.total_orders }}</div>
+                    <div class="stat-label">Total Orders</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value">€{{ "%.2f"|format(monthly_summary.total_revenue) }}</div>
+                    <div class="stat-label">Total Revenue</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value">€{{ "%.2f"|format(monthly_summary.avg_order_value) }}</div>
+                    <div class="stat-label">Avg Order</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value">{{ monthly_summary.unique_customers }}</div>
+                    <div class="stat-label">Unique Customers</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value">{{ monthly_summary.total_pizzas_sold }}</div>
+                    <div class="stat-label">Pizzas Sold</div>
+                </div>
+            </div>
+            <p><small>{{ monthly_summary.period }}</small></p>
+        </div>
+
+        <!-- Undelivered Orders -->
+        <div class="report-card">
+            <h2>🚚 Undelivered Orders</h2>
+            {% if undelivered_orders %}
+                {% for order in undelivered_orders %}
+                <div class="order-item">
+                    <strong>Order #{{ order.order_id }}</strong>
+                    <span class="status-{{ order.status }}">{{ order.status.upper() }}</span><br>
+                    <small>{{ order.customer_name }} - {{ order.customer_phone }}</small><br>
+                    <small>{{ order.customer_address }}</small><br>
+                    <small>Total: €{{ "%.2f"|format(order.total) }}</small><br>
+                    {% if order.delivery_person %}
+                        <small>Assigned: {{ order.delivery_person }}</small>
+                    {% else %}
+                        <small style="color: #f44336;">No delivery person assigned</small>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            {% else %}
+                <p>✅ All orders delivered!</p>
+            {% endif %}
+        </div>
+
+        <!-- Top Pizzas -->
+        <div class="report-card">
+            <h2>🏆 Top 3 Pizzas (Past Month)</h2>
+            {% if top_pizzas %}
+                {% for pizza in top_pizzas %}
+                <div class="order-item">
+                    <strong>{{ loop.index }}. {{ pizza.pizza_name }}</strong><br>
+                    <small>{{ pizza.total_sold }} sold in {{ pizza.orders_count }} orders</small><br>
+                    <small>Avg per order: {{ "%.1f"|format(pizza.avg_per_order) }}</small>
+                </div>
+                {% endfor %}
+            {% else %}
+                <p>No pizza sales data available.</p>
+            {% endif %}
+        </div>
+
+        <!-- Earnings by Age Group -->
+        <div class="report-card">
+            <h2>👥 Earnings by Age Group</h2>
+            {% if age_earnings %}
+                {% for group in age_earnings %}
+                <div class="order-item">
+                    <strong>{{ group.age_group }}</strong><br>
+                    <small>€{{ "%.2f"|format(group.total_earnings) }} from {{ group.total_orders }} orders</small><br>
+                    <small>{{ group.unique_customers }} customers, avg €{{ "%.2f"|format(group.avg_order_value) }}</small>
+                </div>
+                {% endfor %}
+            {% else %}
+                <p>No age group data available.</p>
+            {% endif %}
+        </div>
+
+        <!-- Earnings by Gender -->
+        <div class="report-card">
+            <h2>⚥ Earnings by Gender</h2>
+            {% if gender_earnings %}
+                {% for group in gender_earnings %}
+                <div class="order-item">
+                    <strong>{{ group.gender }}</strong><br>
+                    <small>€{{ "%.2f"|format(group.total_earnings) }} from {{ group.total_orders }} orders</small><br>
+                    <small>Avg order: €{{ "%.2f"|format(group.avg_order_value) }}</small>
+                </div>
+                {% endfor %}
+            {% else %}
+                <p>No gender data available.</p>
+            {% endif %}
+        </div>
+
+        <!-- Earnings by Postal Code -->
+        <div class="report-card">
+            <h2>📍 Earnings by Postal Code</h2>
+            {% if postal_earnings %}
+                {% for area in postal_earnings %}
+                <div class="order-item">
+                    <strong>{{ area.postal_code }}</strong><br>
+                    <small>€{{ "%.2f"|format(area.total_earnings) }} from {{ area.total_orders }} orders</small><br>
+                    <small>{{ area.unique_customers }} customers, avg €{{ "%.2f"|format(area.avg_order_value) }}</small>
+                </div>
+                {% endfor %}
+            {% else %}
+                <p>No postal code data available.</p>
+            {% endif %}
+        </div>
+    </main>
+
+    <script>
+        // Auto-refresh every 60 seconds for real-time updates
+        setTimeout(() => {
+            window.location.reload();
+        }, 60000);
+    </script>
+</body>
+</html>
