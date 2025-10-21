@@ -9,7 +9,31 @@ from sqlalchemy import text
 def calculate_order_total(order: Order, discount_code: Optional[DiscountCode] = None) -> float:
     total = 0.0
     for item in order.items:
-        total += item.pizza.calculate_price() * item.quantity
+        # Handle both old and new OrderItem formats
+        if hasattr(item, 'item_price'):
+            # New format with item_price property
+            total += item.item_price * item.quantity
+        elif hasattr(item, 'pizza') and item.pizza:
+            # Legacy format with pizza relationship
+            total += item.pizza.calculate_price() * item.quantity
+        else:
+            # Fallback: calculate manually based on item_type
+            if item.item_type == 'pizza':
+                from models import Pizza
+                pizza = Pizza.query.get(item.item_id)
+                if pizza:
+                    total += pizza.calculate_price() * item.quantity
+            elif item.item_type == 'drink':
+                from models import Drink
+                drink = Drink.query.get(item.item_id)
+                if drink:
+                    total += float(drink.price) * item.quantity
+            elif item.item_type == 'dessert':
+                from models import Dessert
+                dessert = Dessert.query.get(item.item_id)
+                if dessert:
+                    total += float(dessert.price) * item.quantity
+    
     if discount_code and not discount_code.is_used:
         try:
             percent = float(discount_code.percent_off)
@@ -41,13 +65,39 @@ def apply_discounts(order: Order, discount_code: Optional[DiscountCode] = None) 
         today = datetime.utcnow().date()
         b = order.customer.birthday
         if (b.month, b.day) == (today.month, today.day):
-            cheapest = None
+            cheapest_pizza = None
+            cheapest_drink = None
+            
+            # Find cheapest pizza and cheapest drink in order
             for item in order.items:
-                price = item.pizza.calculate_price()
-                if cheapest is None or price < cheapest:
-                    cheapest = price
-            if cheapest:
-                birthday_deduction = cheapest
+                if item.item_type == 'pizza' or (hasattr(item, 'pizza') and item.pizza):
+                    # Handle both new and old format
+                    if hasattr(item, 'pizza') and item.pizza:
+                        price = item.pizza.calculate_price()
+                    else:
+                        # New format - get pizza object
+                        from models import Pizza
+                        pizza = Pizza.query.get(item.item_id)
+                        price = pizza.calculate_price() if pizza else 0
+                    
+                    if cheapest_pizza is None or price < cheapest_pizza:
+                        cheapest_pizza = price
+                        
+                elif item.item_type == 'drink':
+                    # Handle drinks
+                    from models import Drink
+                    drink = Drink.query.get(item.item_id)
+                    price = float(drink.price) if drink else 0
+                    
+                    if cheapest_drink is None or price < cheapest_drink:
+                        cheapest_drink = price
+            
+            # Apply birthday discount: FREE cheapest pizza + FREE cheapest drink
+            # BUT ONLY if customer orders BOTH pizza AND drink
+            birthday_deduction = 0.0
+            if cheapest_pizza is not None and cheapest_drink is not None:
+                # Customer has both pizza and drink - give both free!
+                birthday_deduction = cheapest_pizza + cheapest_drink
 
     code_discount = 0.0
     if discount_code and not discount_code.is_used:

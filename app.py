@@ -5,7 +5,7 @@ Kopernik Pizza - Main Flask Application
 from flask import Flask, render_template, request, jsonify
 from config import Config
 from extensions import db
-from models import Pizza, Customer, Order, OrderItem, DiscountCode
+from models import Pizza, Customer, Order, OrderItem, DiscountCode, Drink, Dessert
 from utils import apply_discounts, assign_delivery_person_sql
 from staff_reports import (
     get_undelivered_orders, get_top_pizzas_past_month, 
@@ -61,25 +61,51 @@ def hello():
 @app.route("/menu")
 def menu():
     """
-    Display pizza menu with calculated prices.
+    Display complete menu with pizzas, drinks and desserts.
     """
     pizzas = Pizza.query.all()
-    return render_template('menu.html', pizzas=pizzas)
+    drinks = Drink.query.all()
+    desserts = Dessert.query.all()
+    return render_template('menu.html', pizzas=pizzas, drinks=drinks, desserts=desserts)
 
 
 @app.route("/checkout")
 def checkout():
     pizzas = Pizza.query.all()
+    drinks = Drink.query.all()
+    desserts = Dessert.query.all()
 
     pizzas_data = []
     for p in pizzas:
         pizzas_data.append({
             "id": p.id,
             "name": p.name,
-            "price": round(p.calculate_price(), 2) if hasattr(p, "calculate_price") else float(p.base_price or 0)
+            "price": round(p.calculate_price(), 2) if hasattr(p, "calculate_price") else float(p.base_price or 0),
+            "type": "pizza"
         })
 
-    return render_template("checkout.html", pizzas=pizzas_data)
+    drinks_data = []
+    for d in drinks:
+        drinks_data.append({
+            "id": d.id,
+            "name": d.name,
+            "price": float(d.price),
+            "type": "drink"
+        })
+
+    desserts_data = []
+    for d in desserts:
+        desserts_data.append({
+            "id": d.id,
+            "name": d.name,
+            "price": float(d.price),
+            "type": "dessert"
+        })
+
+    # Combine all items for JavaScript access
+    all_items = pizzas_data + drinks_data + desserts_data
+    
+    return render_template("checkout.html", pizzas=pizzas_data, drinks=drinks_data, desserts=desserts_data, all_items=all_items)
 
 
 

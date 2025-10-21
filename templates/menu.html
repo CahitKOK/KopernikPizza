@@ -17,9 +17,11 @@
       <div id="mini-dropdown" class="mini-dropdown"></div>
     </div>
     <main class="container">
+      <!-- Pizzas Section -->
+      <h2>🍕 Pizzas</h2>
       <div class="grid">
       {% for pizza in pizzas %}
-  <article class="card" data-pid="{{ pizza.id }}" data-price="{{ '%.2f'|format(pizza.calculate_price()) }}" data-name="{{ pizza.name|e }}">
+        <article class="card" data-pid="pizza-{{ pizza.id }}" data-price="{{ '%.2f'|format(pizza.calculate_price()) }}" data-name="{{ pizza.name|e }}" data-type="pizza">
           <div class="card-head">
             <div class="title">{{ pizza.name }}</div>
             <div class="price">€{{ '%.2f'|format(pizza.calculate_price()) }}</div>
@@ -38,7 +40,41 @@
             {% endfor %}
           </p>
           <div class="card-footer">
-            <button class="add-to-cart" data-pid="{{ pizza.id }}">🍕 Add to cart</button>
+            <button class="add-to-cart" data-pid="pizza-{{ pizza.id }}" data-type="pizza">🍕 Add to cart</button>
+          </div>
+        </article>
+      {% endfor %}
+      </div>
+
+      <!-- Drinks Section -->
+      <h2 style="margin-top: 2rem;">🥤 Drinks</h2>
+      <div class="grid">
+      {% for drink in drinks %}
+        <article class="card" data-pid="drink-{{ drink.id }}" data-price="{{ '%.2f'|format(drink.price) }}" data-name="{{ drink.name|e }}" data-type="drink">
+          <div class="card-head">
+            <div class="title">{{ drink.name }}</div>
+            <div class="price">€{{ '%.2f'|format(drink.price) }}</div>
+          </div>
+          <p class="desc">{{ drink.size }}</p>
+          <div class="card-footer">
+            <button class="add-to-cart" data-pid="drink-{{ drink.id }}" data-type="drink">🥤 Add to cart</button>
+          </div>
+        </article>
+      {% endfor %}
+      </div>
+
+      <!-- Desserts Section -->
+      <h2 style="margin-top: 2rem;">🍰 Desserts</h2>
+      <div class="grid">
+      {% for dessert in desserts %}
+        <article class="card" data-pid="dessert-{{ dessert.id }}" data-price="{{ '%.2f'|format(dessert.price) }}" data-name="{{ dessert.name|e }}" data-type="dessert">
+          <div class="card-head">
+            <div class="title">{{ dessert.name }}</div>
+            <div class="price">€{{ '%.2f'|format(dessert.price) }}</div>
+          </div>
+          <p class="desc">{{ dessert.description }}</p>
+          <div class="card-footer">
+            <button class="add-to-cart" data-pid="dessert-{{ dessert.id }}" data-type="dessert">🍰 Add to cart</button>
           </div>
         </article>
       {% endfor %}

@@ -35,9 +35,17 @@
 
     <!-- Güvenli JSON aktarımı -->
     <script>
-      // Flask ile pizzaları güvenli şekilde JSON olarak aktar
+      // Flask ile tüm ürünleri güvenli şekilde JSON olarak aktar
       window.PIZZAS = {{ pizzas | tojson |safe}};
-      console.log("[checkout.html] window.PIZZAS loaded:", window.PIZZAS);
+      window.DRINKS = {{ drinks | tojson |safe}};
+      window.DESSERTS = {{ desserts | tojson |safe}};
+      window.ALL_ITEMS = {{ all_items | tojson |safe}};
+      console.log("[checkout.html] Items loaded:", {
+        pizzas: window.PIZZAS.length, 
+        drinks: window.DRINKS.length, 
+        desserts: window.DESSERTS.length,
+        total: window.ALL_ITEMS.length
+      });
     </script>
 
     <script src="{{ url_for('static', filename='js/order.js') }}"></script>

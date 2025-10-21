@@ -5,7 +5,7 @@ for order placement and other critical operations.
 """
 
 from extensions import db
-from models import Order, OrderItem, Customer, Pizza, DiscountCode
+from models import Order, OrderItem, Customer, Pizza, DiscountCode, Drink, Dessert
 from utils import apply_discounts, assign_delivery_person_sql
 from datetime import datetime
 from typing import Dict, Any, Optional
@@ -63,16 +63,40 @@ def create_order_transaction(order_data: Dict[str, Any]) -> Dict[str, Any]:
         
         # Step 4: Create order items
         for item_data in items:
-            pizza_id = item_data['pizza_id']
             quantity = int(item_data['quantity'])
             
-            pizza = Pizza.query.get(pizza_id)
-            if not pizza:
-                raise OrderTransactionError(f"Pizza with ID {pizza_id} not found")
+            # Support both old format (pizza_id) and new format (item_id, item_type)
+            if 'item_id' in item_data and 'item_type' in item_data:
+                item_id = item_data['item_id']
+                item_type = item_data['item_type']
+            elif 'pizza_id' in item_data:
+                # Convert old format to new format
+                item_id = item_data['pizza_id']
+                item_type = 'pizza'
+            else:
+                raise OrderTransactionError("Invalid item format")
+            
+            # Validate item exists
+            if item_type == 'pizza':
+                item_obj = Pizza.query.get(item_id)
+                if not item_obj:
+                    raise OrderTransactionError(f"Pizza with ID {item_id} not found")
+            elif item_type == 'drink':
+                item_obj = Drink.query.get(item_id)
+                if not item_obj:
+                    raise OrderTransactionError(f"Drink with ID {item_id} not found")
+            elif item_type == 'dessert':
+                item_obj = Dessert.query.get(item_id)
+                if not item_obj:
+                    raise OrderTransactionError(f"Dessert with ID {item_id} not found")
+            else:
+                raise OrderTransactionError(f"Invalid item type: {item_type}")
                 
             order_item = OrderItem(
                 order_id=order.id,
-                pizza_id=pizza_id,
+                item_type=item_type,
+                item_id=item_id,
+                pizza_id=item_id if item_type == 'pizza' else None,  # Legacy compatibility
                 quantity=quantity
             )
             db.session.add(order_item)
@@ -185,12 +209,27 @@ def _validate_order_items(items: list) -> None:
     if not isinstance(items, list):
         raise OrderTransactionError("Items must be a list")
     
+    # Business Rule: Every order MUST contain at least one pizza
+    has_pizza = False
+    
     for item in items:
         if not isinstance(item, dict):
             raise OrderTransactionError("Each item must be a dictionary")
             
-        if 'pizza_id' not in item:
-            raise OrderTransactionError("Each item must have a pizza_id")
+        # Support both old format (pizza_id) and new format (item_id, item_type)
+        has_old_format = 'pizza_id' in item
+        has_new_format = 'item_id' in item and 'item_type' in item
+        
+        if not (has_old_format or has_new_format):
+            raise OrderTransactionError("Each item must have either pizza_id or (item_id and item_type)")
+            
+        # Check if this item is a pizza
+        if has_old_format or (has_new_format and item.get('item_type') == 'pizza'):
+            has_pizza = True
+            
+        # Validate item type if provided
+        if 'item_type' in item and item['item_type'] not in ['pizza', 'drink', 'dessert']:
+            raise OrderTransactionError("Item type must be 'pizza', 'drink', or 'dessert'")
             
         try:
             quantity = int(item.get('quantity', 1))
@@ -198,6 +237,10 @@ def _validate_order_items(items: list) -> None:
                 raise OrderTransactionError("Quantity must be greater than 0")
         except (ValueError, TypeError):
             raise OrderTransactionError("Invalid quantity value")
+    
+    # MANDATORY PIZZA RULE: Every order must contain at least one pizza
+    if not has_pizza:
+        raise OrderTransactionError("Every order must contain at least one pizza! You cannot order only drinks or desserts.")
 
 
 def _validate_discount_code(code: str) -> DiscountCode:

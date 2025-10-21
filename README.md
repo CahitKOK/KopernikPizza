@@ -20,16 +20,26 @@ This project is part of the Maastricht University **KEN2110 – Databases** cour
 
 ---
 
-## 📂 Project Structure
+## 📂 Clean Project Structure
+```
 KopernikPizza/
-│── app.py # Flask entry point
-│── config.py # Database configuration
-│── models.py # ORM models
-│── requirements.txt # Dependencies
-│── migrations/ # (later) Alembic migrations
-│── static/ # CSS/JS
-│── templates/ # HTML templates
-│── venv/ # Virtual environment (not in git)
+├── app.py                    # Main Flask application - entry point
+├── models.py                 # SQLAlchemy ORM models (Customer, Pizza, Order, etc.)
+├── extensions.py             # Flask extensions (SQLAlchemy db instance)
+├── config.py                 # Database configuration
+├── transactions.py           # Order transaction management with rollback
+├── utils.py                  # Discount logic and delivery assignment
+├── staff_reports.py          # Staff dashboard reporting functions
+├── database_constraints.py   # Advanced database constraints and validation
+├── create_db.py              # Database creation script
+├── seed.py                   # Sample data seeding (pizzas, customers, etc.)
+├── kopernikpizza.db          # SQLite database file
+├── requiremnts.txt           # Python dependencies
+├── templates/                # HTML templates (menu, checkout, staff dashboard)
+├── static/                   # CSS/JS assets
+├── tests/                    # Unit tests
+└── venv/                     # Virtual environment (not in git)
+```
 
 
 ---
@@ -72,7 +82,10 @@ source venv/bin/activate   # Mac/Linux
 - ✅ Vegetarian/Vegan labeling
 - ✅ Web interface with menu display
 - ✅ 10 customers, 3 delivery persons
-- ✅ Drinks and desserts
+- ✅ **5 drinks and 4 desserts fully integrated**
+- ✅ **Complete multi-item ordering system (pizzas, drinks, desserts)**
+- ✅ **Birthday free drink/pizza discount system**
+- ✅ **Business Rule: PIZZA MANDATORY - Every order must contain at least one pizza**
 
 ## Database Models
 - `Customer` - Customer information
@@ -90,14 +103,15 @@ source venv/bin/activate   # Mac/Linux
 - **Order Placement**
   - Orders can be placed via `/orders` endpoint.
   - New customers are added automatically; existing customers can be reused.
-  - Orders include linked `OrderItem` records for pizzas.
+  - Orders include linked `OrderItem` records for pizzas, drinks, and desserts.
+  - **MANDATORY PIZZA RULE**: Every order must contain at least one pizza - customers cannot order only drinks/desserts.
 
 - **Customer Tracking**
   - Customer information (name, email, phone, address, birthday) stored in database.
   - Pizza count per customer tracked for loyalty discounts.
 
 - **Discounts**
-  - 🎂 **Birthday discount**: Customer receives the cheapest pizza for free on their birthday.
+  - 🎂 **Birthday discount**: Customer receives 1 FREE cheapest pizza + 1 FREE cheapest drink on their birthday.
   - 🏆 **Loyalty discount**: After 10 pizzas, customer gets 10% off all future orders.
   - 💸 **Discount codes**: One-time codes supported, marked as used after redemption.
 
@@ -126,10 +140,11 @@ source venv/bin/activate   # Mac/Linux
 - **Customer Management**: Complete customer profiles with address and birthday tracking
 
 ### Advanced Discount & Loyalty System
-- **Multi-tier Discounts**: Birthday (free cheapest pizza), loyalty (10% after 10 pizzas), promotional codes
+- **Multi-tier Discounts**: Birthday (1 FREE cheapest pizza + 1 FREE cheapest drink), loyalty (10% after 10 pizzas), promotional codes
 - **Smart Discount Stacking**: Proper calculation order preventing negative totals
 - **One-time Discount Codes**: Automatic marking as used after redemption
 - **Historical Purchase Tracking**: SQL-based calculation of customer pizza history
+- **Complete Item Support**: Discount system handles pizzas, drinks, and desserts
 
 ### Intelligent Delivery Management
 - **Geographic Zone Assignment**: Postcode prefix mapping to delivery personnel

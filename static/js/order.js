@@ -17,9 +17,15 @@ function loadCart(){
   try{
     const raw = JSON.parse(localStorage.getItem(CART_KEY) || '[]')
     if(!Array.isArray(raw)) return []
-    // normalize entries: ensure numeric pizza_id and quantity, filter invalid entries
-    return raw.map(it=>({ pizza_id: Number(it.pizza_id), quantity: Number(it.quantity) }))
-              .filter(it=> Number.isFinite(it.pizza_id) && Number.isFinite(it.quantity) && it.quantity>0)
+    // normalize entries: support both old format (pizza_id) and new format (item_id, item_type)
+    return raw.map(it=>{
+      if(it.pizza_id && !it.item_id) {
+        // Convert old format to new format
+        return { item_id: Number(it.pizza_id), item_type: 'pizza', quantity: Number(it.quantity) }
+      } else {
+        return { item_id: Number(it.item_id), item_type: it.item_type || 'pizza', quantity: Number(it.quantity) }
+      }
+    }).filter(it=> Number.isFinite(it.item_id) && Number.isFinite(it.quantity) && it.quantity>0)
   }catch(e){ return [] }
 }
 function saveCart(c){ const s = JSON.stringify(c); localStorage.setItem(CART_KEY, s); }
@@ -38,6 +44,22 @@ function bindCartButtons(){
   document.querySelectorAll('.remove-item').forEach(b=> b.onclick = ()=>{ removeItem(Number(b.dataset.pid)) })
 }
 
+function getItemInfo(item_id, item_type) {
+  // Helper function to get item info from various sources
+  let items = []
+  if (item_type === 'pizza' && window.PIZZAS) {
+    items = window.PIZZAS
+  } else if (item_type === 'drink' && window.DRINKS) {
+    items = window.DRINKS
+  } else if (item_type === 'dessert' && window.DESSERTS) {
+    items = window.DESSERTS
+  } else if (window.ALL_ITEMS) {
+    items = window.ALL_ITEMS.filter(i => i.type === item_type)
+  }
+  
+  return items.find(i => i.id == item_id) || null
+}
+
 function renderCart(){
   const cart = loadCart()
   // renderCart called
@@ -49,11 +71,13 @@ function renderCart(){
     miniDrop.innerHTML = ''
     if(cart.length === 0){ miniDrop.innerHTML = '<div style="padding:8px">Cart is empty</div>' }
     cart.forEach(it=>{
-      const p = window.PIZZAS && window.PIZZAS[it.pizza_id]
-      const name = p ? p.name : `Pizza ${it.pizza_id}`
+      const itemInfo = getItemInfo(it.item_id, it.item_type)
+      const name = itemInfo ? itemInfo.name : `${it.item_type} ${it.item_id}`
+      const price = itemInfo ? parseFloat(itemInfo.price) : 0
+      const emoji = it.item_type === 'pizza' ? '🍕' : it.item_type === 'drink' ? '🥤' : '🍰'
       const div = document.createElement('div')
       div.className = 'mini-item'
-      div.innerHTML = `<span>${name} x${it.quantity}</span><strong>€${((p?parseFloat(p.price):0)*it.quantity).toFixed(2)}</strong>`
+      div.innerHTML = `<span>${emoji} ${name} x${it.quantity}</span><strong>€${(price*it.quantity).toFixed(2)}</strong>`
       miniDrop.appendChild(div)
     })
     if(cart.length>0){ const btn = document.createElement('div'); btn.style.textAlign='center'; btn.style.paddingTop='6px'; btn.innerHTML = `<a href='/checkout' class='checkout-btn'>Go to checkout</a>`; miniDrop.appendChild(btn) }
@@ -69,19 +93,20 @@ function renderCart(){
   let total = 0
   const frag = document.createDocumentFragment()
   cart.forEach(it=>{
-    const pinfo = (window.PIZZAS && window.PIZZAS[it.pizza_id]) || null
-    const name = pinfo ? pinfo.name : `Pizza ${it.pizza_id}`
-    const unit = pinfo ? parseFloat(pinfo.price) : 0
+    const itemInfo = getItemInfo(it.item_id, it.item_type)
+    const name = itemInfo ? itemInfo.name : `${it.item_type} ${it.item_id}`
+    const unit = itemInfo ? parseFloat(itemInfo.price) : 0
     const line = unit * it.quantity
+    const emoji = it.item_type === 'pizza' ? '🍕' : it.item_type === 'drink' ? '🥤' : '🍰'
     const div = document.createElement('div')
     div.className = 'cart-line'
     div.innerHTML = `
-      <strong>${name}</strong> — €${unit.toFixed(2)} ×
-      <button class="qty-decr" data-pid="${it.pizza_id}">-</button>
+      <strong>${emoji} ${name}</strong> — €${unit.toFixed(2)} ×
+      <button class="qty-decr" data-item-id="${it.item_id}" data-item-type="${it.item_type}">-</button>
       <span class="qty">${it.quantity}</span>
-      <button class="qty-incr" data-pid="${it.pizza_id}">+</button>
+      <button class="qty-incr" data-item-id="${it.item_id}" data-item-type="${it.item_type}">+</button>
       = €${line.toFixed(2)}
-      <button class="remove-item" data-pid="${it.pizza_id}">Remove</button>
+      <button class="remove-item" data-item-id="${it.item_id}" data-item-type="${it.item_type}">Remove</button>
     `
     frag.appendChild(div)
     total += line
@@ -92,12 +117,12 @@ function renderCart(){
   try{ console.log('[order.js] rendered checkout HTML:', itemsDiv.innerHTML) }catch(e){}
 }
 
-function addToCart(pizza_id){
-  try{ console.log('[order.js] addToCart called pid=', pizza_id) }catch(e){}
+function addToCart(item_id, item_type = 'pizza'){
+  try{ console.log('[order.js] addToCart called id=', item_id, 'type=', item_type) }catch(e){}
   const cart = loadCart()
-  const existing = cart.find(c=>c.pizza_id === pizza_id)
+  const existing = cart.find(c=>c.item_id === item_id && c.item_type === item_type)
   if(existing) existing.quantity += 1
-  else cart.push({pizza_id, quantity:1})
+  else cart.push({item_id, item_type, quantity:1})
   saveCart(cart)
   renderCart()
   if(typeof window.showToast === 'function'){
@@ -105,18 +130,18 @@ function addToCart(pizza_id){
   } else { console.log('[order.js] showToast not available') }
 }
 
-function changeQty(pizza_id, delta){
+function changeQty(item_id, delta, item_type = 'pizza'){
   const cart = loadCart()
-  const it = cart.find(c=>c.pizza_id===pizza_id)
+  const it = cart.find(c=>c.item_id===item_id && c.item_type===item_type)
   if(!it) return
   it.quantity += delta
-  if(it.quantity <= 0){ const idx = cart.findIndex(c=>c.pizza_id===pizza_id); cart.splice(idx,1) }
+  if(it.quantity <= 0){ const idx = cart.findIndex(c=>c.item_id===item_id && c.item_type===item_type); cart.splice(idx,1) }
   saveCart(cart)
   renderCart()
 }
 
-function removeItem(pizza_id){
-  const cart = loadCart().filter(c=>c.pizza_id!==pizza_id)
+function removeItem(item_id, item_type = 'pizza'){
+  const cart = loadCart().filter(c=>!(c.item_id===item_id && c.item_type===item_type))
   saveCart(cart)
   renderCart()
 }
@@ -146,20 +171,43 @@ function initCart(){
     const btn = e.target && (e.target.closest ? e.target.closest('.add-to-cart') : (e.target.classList && e.target.classList.contains('add-to-cart') ? e.target : null))
     if(!btn) return
     e.preventDefault()
-    // get pid from button dataset or from enclosing .card
-    let pidAttr = null
+    // get item id and type from button dataset or from enclosing .card
+    let itemAttr = null, typeAttr = null
     try{
-      if(btn.dataset && btn.dataset.pid) pidAttr = btn.dataset.pid
-      else if(btn.closest){ const c = btn.closest('.card'); if(c && c.dataset) pidAttr = c.dataset.pid }
-    }catch(e){ try{ console.warn('[order.js] pidAttr extraction error', e) }catch(_){} }
-    const pid = parseInt(pidAttr, 10)
-    try{ console.log('[order.js] add-to-cart click detected', { pidAttr, pid, btn }) }catch(e){}
-    if(isNaN(pid)){
-      try{ console.warn('[order.js] add-to-cart clicked but pid missing or invalid', pidAttr) }catch(e){}
+      if(btn.dataset && btn.dataset.pid) {
+        itemAttr = btn.dataset.pid
+        typeAttr = btn.dataset.type
+      } else if(btn.closest){ 
+        const c = btn.closest('.card')
+        if(c && c.dataset) {
+          itemAttr = c.dataset.pid
+          typeAttr = c.dataset.type
+        }
+      }
+    }catch(e){ try{ console.warn('[order.js] item attr extraction error', e) }catch(_){} }
+    
+    // Extract item ID from formats like "pizza-1", "drink-2", "dessert-3"
+    let itemId = null, itemType = 'pizza'
+    if(itemAttr && itemAttr.includes('-')) {
+      const parts = itemAttr.split('-')
+      if(parts.length >= 2) {
+        itemType = parts[0]
+        itemId = parseInt(parts[1], 10)
+      }
+    } else {
+      itemId = parseInt(itemAttr, 10)
+    }
+    
+    // Override with explicit type if available
+    if(typeAttr) itemType = typeAttr
+    
+    try{ console.log('[order.js] add-to-cart click detected', { itemAttr, itemId, itemType, btn }) }catch(e){}
+    if(isNaN(itemId)){
+      try{ console.warn('[order.js] add-to-cart clicked but item id missing or invalid', itemAttr) }catch(e){}
       return
     }
     try{
-      addToCart(pid)
+      addToCart(itemId, itemType)
     }catch(err){
       console.error('[order.js] addToCart threw', err)
     }
@@ -168,11 +216,29 @@ function initCart(){
   // also delegate quantity and remove button clicks (works after render)
   document.addEventListener('click', function(e){
     const incr = e.target && (e.target.closest ? e.target.closest('.qty-incr') : (e.target.classList && e.target.classList.contains('qty-incr') ? e.target : null))
-    if(incr){ e.preventDefault(); const pid = Number(incr.dataset.pid); if(!isNaN(pid)) changeQty(pid, 1); return }
+    if(incr){ 
+      e.preventDefault()
+      const itemId = Number(incr.dataset.itemId || incr.dataset.pid)
+      const itemType = incr.dataset.itemType || incr.dataset.type || 'pizza'
+      if(!isNaN(itemId)) changeQty(itemId, 1, itemType)
+      return 
+    }
     const decr = e.target && (e.target.closest ? e.target.closest('.qty-decr') : (e.target.classList && e.target.classList.contains('qty-decr') ? e.target : null))
-    if(decr){ e.preventDefault(); const pid = Number(decr.dataset.pid); if(!isNaN(pid)) changeQty(pid, -1); return }
+    if(decr){ 
+      e.preventDefault()
+      const itemId = Number(decr.dataset.itemId || decr.dataset.pid)
+      const itemType = decr.dataset.itemType || decr.dataset.type || 'pizza'
+      if(!isNaN(itemId)) changeQty(itemId, -1, itemType)
+      return 
+    }
     const rem = e.target && (e.target.closest ? e.target.closest('.remove-item') : (e.target.classList && e.target.classList.contains('remove-item') ? e.target : null))
-    if(rem){ e.preventDefault(); const pid = Number(rem.dataset.pid); if(!isNaN(pid)) removeItem(pid); return }
+    if(rem){ 
+      e.preventDefault()
+      const itemId = Number(rem.dataset.itemId || rem.dataset.pid)
+      const itemType = rem.dataset.itemType || rem.dataset.type || 'pizza'
+      if(!isNaN(itemId)) removeItem(itemId, itemType)
+      return 
+    }
   })
 
   // Note: we don't auto-navigate on mini-cart click here — the dropdown toggle is handled below.
@@ -230,7 +296,13 @@ function initCart(){
           address: form.address.value,
           birthday: form.birthday.value || undefined
         },
-        items: cart.map(i=>({pizza_id: i.pizza_id, quantity: i.quantity})),
+        items: cart.map(i=>({
+          item_id: i.item_id, 
+          item_type: i.item_type, 
+          quantity: i.quantity,
+          // Include legacy format for backward compatibility
+          pizza_id: i.item_type === 'pizza' ? i.item_id : undefined
+        })),
         discount_code: form.discount_code.value || undefined
       }
       const res = await fetch('/orders', {method:'POST', headers:{'content-type':'application/json'}, body: JSON.stringify(payload)})

@@ -98,14 +98,54 @@ class OrderItem(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     order_id = db.Column(db.Integer, db.ForeignKey("orders.id"))
-    pizza_id = db.Column(db.Integer, db.ForeignKey("pizzas.id"))
+    
+    # Item type and ID - supports pizza, drink, dessert
+    item_type = db.Column(db.String(20), nullable=False, default='pizza')
+    item_id = db.Column(db.Integer, nullable=False)
+    
+    # Legacy pizza_id column for backward compatibility
+    pizza_id = db.Column(db.Integer, db.ForeignKey("pizzas.id"), nullable=True)
+    
     quantity = db.Column(db.Integer, nullable=False)
 
     order = db.relationship("Order", back_populates="items")
     pizza = db.relationship("Pizza", back_populates="order_items")
+    
+    @property
+    def item_object(self):
+        """Get the actual item object (Pizza, Drink, or Dessert)"""
+        if self.item_type == 'pizza':
+            return Pizza.query.get(self.item_id)
+        elif self.item_type == 'drink':
+            return Drink.query.get(self.item_id)
+        elif self.item_type == 'dessert':
+            return Dessert.query.get(self.item_id)
+        return None
+    
+    @property
+    def item_name(self):
+        """Get the name of the item"""
+        item = self.item_object
+        return item.name if item else f"Unknown {self.item_type}"
+    
+    @property 
+    def item_price(self):
+        """Get the price of the item"""
+        item = self.item_object
+        if not item:
+            return 0.0
+        if self.item_type == 'pizza' and hasattr(item, 'calculate_price'):
+            return item.calculate_price()
+        else:
+            return float(item.price)
+    
+    @property
+    def total_price(self):
+        """Get total price for this order item"""
+        return self.item_price * self.quantity
 
     def __repr__(self):
-        return f"<OrderItem {self.id} - Order {self.order_id} - Pizza {self.pizza_id}>"
+        return f"<OrderItem {self.id} - Order {self.order_id} - {self.item_type.title()} {self.item_id}>"
 
 class DeliveryPerson(db.Model):
     __tablename__ = "delivery_persons"
